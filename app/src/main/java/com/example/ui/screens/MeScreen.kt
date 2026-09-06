@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -121,9 +122,9 @@ fun MeScreen(authViewModel: AuthViewModel, onNavigateToAdmin: () -> Unit = {}) {
                     colors = ButtonDefaults.buttonColors(containerColor = AuraCard),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Settings, contentDescription = null, tint = AuraPrimary)
+                    Icon(Icons.Default.Security, contentDescription = null, tint = AuraPrimary)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Admin Dashboard", color = Color.White, fontSize = 16.sp)
+                    Text("🛡️ Admin Dashboard", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

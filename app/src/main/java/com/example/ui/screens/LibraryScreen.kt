@@ -11,11 +11,11 @@ import com.example.ui.theme.AuraTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayScreen() {
+fun LibraryScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Play", color = Color.White) },
+                title = { Text("Library", color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AuraBackground)
             )
         },

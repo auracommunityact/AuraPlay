@@ -15,7 +15,7 @@ fun TavernScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tavern", color = Color.White) },
+                title = { Text("Social Tavern", color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AuraBackground)
             )
         },

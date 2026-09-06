@@ -23,7 +23,7 @@ import com.example.ui.theme.AuraBackground
 import com.example.ui.theme.AuraPrimary
 import com.example.ui.theme.AuraTextSecondary
 import com.example.ui.screens.DiscoverScreen
-import com.example.ui.screens.PlayScreen
+import com.example.ui.screens.LibraryScreen
 import com.example.ui.screens.TavernScreen
 import com.example.ui.screens.MeScreen
 import androidx.compose.material.icons.Icons
@@ -32,23 +32,24 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Gamepad
+import androidx.compose.material.icons.filled.List
 
 import com.example.ui.components.AuraPlayLogo
 
 import com.example.ui.admin.AdminDashboardScreen
 
 sealed class Screen(val route: String, val title: String, val icon: @Composable (isSelected: Boolean) -> Unit) {
-    object Discover : Screen("discover", "Games", { Icon(Icons.Filled.Gamepad, contentDescription = "Games") })
-    object Play : Screen("play", "Play", { Icon(Icons.Filled.PlayArrow, contentDescription = "Play") })
+    object Discover : Screen("discover", "Discovery", { Icon(Icons.Filled.Gamepad, contentDescription = "Discovery") })
+    object Library : Screen("library", "Library", { Icon(Icons.Filled.List, contentDescription = "Library") })
     object Home : Screen("home", "", { AuraPlayLogo(Modifier.padding(bottom = 8.dp)) })
-    object Tavern : Screen("tavern", "Tavern", { Icon(Icons.Filled.Forum, contentDescription = "Tavern") })
+    object Tavern : Screen("tavern", "Social Tavern", { Icon(Icons.Filled.Forum, contentDescription = "Social Tavern") })
     object Me : Screen("me", "Me", { Icon(Icons.Filled.Person, contentDescription = "Me") })
     object Admin : Screen("admin", "Admin", { }) // Not in bottom bar
 }
 
 val items = listOf(
     Screen.Discover,
-    Screen.Play,
+    Screen.Library,
     Screen.Home,
     Screen.Tavern,
     Screen.Me
@@ -100,7 +101,7 @@ fun AuraPlayApp(authViewModel: com.example.ui.auth.AuthViewModel) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Discover.route) { DiscoverScreen() }
-            composable(Screen.Play.route) { PlayScreen() }
+            composable(Screen.Library.route) { LibraryScreen() }
             composable(Screen.Home.route) { DiscoverScreen() }
             composable(Screen.Tavern.route) { TavernScreen() }
             composable(Screen.Me.route) { 
