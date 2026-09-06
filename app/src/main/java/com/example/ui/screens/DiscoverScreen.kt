@@ -36,9 +36,11 @@ fun DiscoverScreen() {
                             .padding(end = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        com.example.ui.components.AuraPlayLogo(modifier = Modifier.size(32.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             "AURA PLAY",
-                            color = AuraPrimary,
+                            color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             modifier = Modifier.weight(1f)
