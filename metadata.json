@@ -1,0 +1,6 @@
+{
+  "name": "Aura Play",
+  "description": "Aura Play gaming ecosystem inspired by modern game-discovery platforms, with a premium dark interface, game discovery, charts, release calendar, and community Tavern.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
