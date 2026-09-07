@@ -1,30 +1,46 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.*
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Notifications
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.example.data.models.Game
+import com.example.ui.theme.AuraBackground
+import com.example.ui.theme.AuraBorder
+import com.example.ui.theme.AuraCard
+import com.example.ui.theme.AuraPrimary
+import com.example.ui.theme.AuraTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DiscoverScreen() {
-    var selectedTab by remember { mutableStateOf("Discover") }
-    val tabs = listOf("Discover", "Top Charts", "Calendar", "Gamelist")
+fun DiscoverScreen(onGameClick: (String) -> Unit = {}, viewModel: DiscoverViewModel = viewModel()) {
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+
+    var selectedTab by remember { mutableStateOf("Games") }
+    val tabs = listOf("Games", "Apps", "Offers")
 
     Scaffold(
         topBar = {
@@ -45,17 +61,6 @@ fun DiscoverScreen() {
                             fontSize = 20.sp,
                             modifier = Modifier.weight(1f)
                         )
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = Color.White,
-                            modifier = Modifier.padding(end = 16.dp)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notifications",
-                            tint = Color.White
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -70,66 +75,130 @@ fun DiscoverScreen() {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Tabs
-            ScrollableTabRow(
-                selectedTabIndex = tabs.indexOf(selectedTab),
-                containerColor = AuraBackground,
-                contentColor = Color.White,
-                indicator = { tabPositions ->
-                    if (tabs.indexOf(selectedTab) < tabPositions.size) {
-                        TabRowDefaults.Indicator(
-                            Modifier.tabIndicatorOffset(tabPositions[tabs.indexOf(selectedTab)]),
-                            color = AuraPrimary
-                        )
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = viewModel::onSearchQueryChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search by title, developer, or genre...", color = AuraTextSecondary) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = AuraTextSecondary) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear", tint = AuraTextSecondary)
+                        }
                     }
                 },
-                edgePadding = 16.dp
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == title,
-                        onClick = { selectedTab = title },
-                        text = {
-                            Text(
-                                title,
-                                fontWeight = if (selectedTab == title) FontWeight.Bold else FontWeight.Normal,
-                                color = if (selectedTab == title) Color.White else AuraTextSecondary
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = AuraCard,
+                    unfocusedContainerColor = AuraCard,
+                    focusedBorderColor = AuraPrimary,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                shape = RoundedCornerShape(24.dp),
+                singleLine = true
+            )
+
+            if (searchQuery.isNotEmpty()) {
+                // SHOW SEARCH RESULTS IN GRID
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AuraPrimary)
+                    }
+                } else if (error != null) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(error ?: "Unknown error", color = MaterialTheme.colorScheme.error)
+                    }
+                } else if (searchResults.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No games found.", color = AuraTextSecondary)
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(150.dp),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(searchResults) { game ->
+                            GameGridCard(game = game, onClick = { onGameClick(game.id) })
+                        }
+                    }
+                }
+            } else {
+                // SHOW REGULAR DISCOVER LAYOUT
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Tabs
+                    ScrollableTabRow(
+                        selectedTabIndex = tabs.indexOf(selectedTab),
+                        containerColor = AuraBackground,
+                        contentColor = Color.White,
+                        indicator = { tabPositions ->
+                            if (tabs.indexOf(selectedTab) < tabPositions.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                    Modifier.tabIndicatorOffset(tabPositions[tabs.indexOf(selectedTab)]),
+                                    color = AuraPrimary
+                                )
+                            }
+                        },
+                        edgePadding = 16.dp,
+                        divider = {}
+                    ) {
+                        tabs.forEachIndexed { _, title ->
+                            Tab(
+                                selected = selectedTab == title,
+                                onClick = { selectedTab = title },
+                                text = {
+                                    Text(
+                                        title,
+                                        fontWeight = if (selectedTab == title) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (selectedTab == title) Color.White else AuraTextSecondary
+                                    )
+                                }
                             )
                         }
-                    )
-                }
-            }
+                    }
 
-            // Category Chips
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val categories = listOf("For You", "Editor's Choice", "Action", "Adventure", "RPG", "Strategy")
-                items(categories.size) { index ->
-                    CategoryChip(categories[index], isSelected = index == 0)
-                }
-            }
+                    // Category Chips
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val categories = listOf("For You", "Editor's Choice", "Action", "Adventure", "RPG", "Strategy")
+                        items(categories.size) { index ->
+                            CategoryChip(categories[index], isSelected = index == 0)
+                        }
+                    }
 
-            // Featured Game
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item {
-                    FeaturedGameCard()
-                }
-                item {
-                    Text(
-                        "Trending Games",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-                items(5) { index ->
-                    GameListCard(index = index)
+                    // Discover Content (From DB)
+                    if (isLoading) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = AuraPrimary)
+                        }
+                    } else if (searchResults.isNotEmpty()) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            item {
+                                Text(
+                                    "Trending Games",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                            items(searchResults.take(5).size) { index ->
+                                GameListCard(game = searchResults[index], onClick = { onGameClick(searchResults[index].id) })
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -154,80 +223,30 @@ fun CategoryChip(label: String, isSelected: Boolean) {
 }
 
 @Composable
-fun FeaturedGameCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(280.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = AuraCard)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Placeholder for image
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF2C2C3E))
-            ) {
-                Text(
-                    "Game Cover Image",
-                    color = AuraTextSecondary,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-            // Gradient Overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, AuraBackground.copy(alpha = 0.9f)),
-                            startY = 100f
-                        )
-                    )
-            )
-            // Content
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
-            ) {
-                Surface(
-                    color = Color.Black.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    Text("Game of the Day", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                }
-                Text("Aura Legends", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Text("★ 9.8", color = AuraPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text(" • RPG • Adventure", color = AuraTextSecondary, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun GameListCard(index: Int) {
+fun GameListCard(game: Game, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon placeholder
         Box(
             modifier = Modifier
                 .size(64.dp)
                 .background(AuraCard, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text("Icon", color = AuraTextSecondary, fontSize = 12.sp)
+            if (!game.icon_url.isNullOrEmpty()) {
+                AsyncImage(
+                    model = game.icon_url,
+                    contentDescription = game.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Text(game.title.take(1), color = AuraTextSecondary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            }
         }
         
         Column(
@@ -235,8 +254,8 @@ fun GameListCard(index: Int) {
                 .weight(1f)
                 .padding(horizontal = 16.dp)
         ) {
-            Text("Trending Game ${index + 1}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text("★ 8.${9 - index} • Action • Android", color = AuraTextSecondary, fontSize = 12.sp)
+            Text(game.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text("★ ${game.rating ?: "N/A"} • ${game.genre ?: "Unknown"}", color = AuraTextSecondary, fontSize = 12.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
         
         Button(
@@ -250,6 +269,67 @@ fun GameListCard(index: Int) {
             modifier = Modifier.height(36.dp)
         ) {
             Text("Get", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun GameGridCard(game: Game, onClick: () -> Unit = {}) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = AuraCard)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(Color(0xFF2C2C3E))
+            ) {
+                if (!game.cover_url.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = game.cover_url,
+                        contentDescription = game.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = game.title,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = game.genre ?: game.developer ?: "Unknown",
+                    color = AuraTextSecondary,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "★ ${game.rating ?: "N/A"}",
+                        color = AuraPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

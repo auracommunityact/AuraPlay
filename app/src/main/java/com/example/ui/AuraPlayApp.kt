@@ -100,9 +100,17 @@ fun AuraPlayApp(authViewModel: com.example.ui.auth.AuthViewModel) {
             startDestination = Screen.Discover.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Discover.route) { DiscoverScreen() }
+            composable(Screen.Discover.route) { 
+                DiscoverScreen(onGameClick = { gameId ->
+                    navController.navigate("game_detail/$gameId")
+                }) 
+            }
             composable(Screen.Library.route) { LibraryScreen() }
-            composable(Screen.Home.route) { DiscoverScreen() }
+            composable(Screen.Home.route) { 
+                DiscoverScreen(onGameClick = { gameId ->
+                    navController.navigate("game_detail/$gameId")
+                }) 
+            }
             composable(Screen.Tavern.route) { TavernScreen() }
             composable(Screen.Me.route) { 
                 MeScreen(
@@ -113,6 +121,16 @@ fun AuraPlayApp(authViewModel: com.example.ui.auth.AuthViewModel) {
             composable(Screen.Admin.route) {
                 AdminDashboardScreen(
                     authViewModel = authViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = "game_detail/{gameId}",
+                arguments = listOf(androidx.navigation.navArgument("gameId") { type = androidx.navigation.NavType.StringType })
+            ) { backStackEntry ->
+                val gameId = backStackEntry.arguments?.getString("gameId") ?: return@composable
+                com.example.ui.screens.GameDetailScreen(
+                    gameId = gameId,
                     onBack = { navController.popBackStack() }
                 )
             }
