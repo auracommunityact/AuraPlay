@@ -35,7 +35,8 @@ import io.github.jan.supabase.storage.storage
 @Composable
 fun AdminDashboardScreen(
     authViewModel: AuthViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToGames: () -> Unit
 ) {
     val authState by authViewModel.authState.collectAsState()
     val profile = (authState as? AuthState.Authenticated)?.profile
@@ -107,6 +108,14 @@ fun AdminDashboardScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            item {
+                AdminCard(
+                    title = "Game Management",
+                    description = "Add, edit, and publish games to the store.",
+                    icon = Icons.Default.VideogameAsset,
+                    onClick = { onNavigateToGames() }
+                )
+            }
             item {
                 AdminCard(
                     title = "Media Manager",

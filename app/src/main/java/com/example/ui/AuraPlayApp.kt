@@ -121,6 +121,24 @@ fun AuraPlayApp(authViewModel: com.example.ui.auth.AuthViewModel) {
             composable(Screen.Admin.route) {
                 AdminDashboardScreen(
                     authViewModel = authViewModel,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToGames = { navController.navigate("admin_games") }
+                )
+            }
+            composable("admin_games") {
+                com.example.ui.admin.AdminGamesScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToAddGame = { navController.navigate("admin_add_edit_game/new") },
+                    onNavigateToEditGame = { gameId -> navController.navigate("admin_add_edit_game/$gameId") }
+                )
+            }
+            composable(
+                route = "admin_add_edit_game/{gameId}",
+                arguments = listOf(androidx.navigation.navArgument("gameId") { type = androidx.navigation.NavType.StringType })
+            ) { backStackEntry ->
+                val gameId = backStackEntry.arguments?.getString("gameId")
+                com.example.ui.admin.AdminAddEditGameScreen(
+                    gameId = gameId,
                     onBack = { navController.popBackStack() }
                 )
             }

@@ -212,16 +212,29 @@ fun GameDetailScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = AuraPrimary),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Download", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("Download from Aura Play", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
 
-                        Button(
-                            onClick = { },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AuraCard),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Also available on Apple", color = Color.White, fontSize = 16.sp)
+                        if (!game?.google_play_url.isNullOrEmpty()) {
+                            Button(
+                                onClick = { },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = AuraCard),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Get it on Google Play", color = Color.White, fontSize = 16.sp)
+                            }
+                        }
+
+                        if (!game?.apple_store_url.isNullOrEmpty()) {
+                            Button(
+                                onClick = { },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = AuraCard),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Download on the App Store", color = Color.White, fontSize = 16.sp)
+                            }
                         }
                     }
                 }
