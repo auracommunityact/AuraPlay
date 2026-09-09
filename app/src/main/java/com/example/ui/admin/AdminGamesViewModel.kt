@@ -44,22 +44,30 @@ class AdminGamesViewModel : ViewModel() {
     }
 
     suspend fun saveGame(game: Game): Boolean {
+        _isLoading.value = true
+        _error.value = null
         return try {
+            android.util.Log.d("AuraPlayGameUpload", "Database operation started for game: ${game.title}")
             if (game.id.isBlank()) {
                 // Insert
                 val newGame = game.copy(id = UUID.randomUUID().toString())
                 SupabaseClient.client.postgrest["games"].insert(newGame)
+                android.util.Log.d("AuraPlayGameUpload", "Database insert completed")
             } else {
                 // Update
                 SupabaseClient.client.postgrest["games"].update(game) {
                     filter { eq("id", game.id) }
                 }
+                android.util.Log.d("AuraPlayGameUpload", "Database update completed")
             }
             fetchGames()
             true
         } catch (e: Exception) {
+            android.util.Log.e("AuraPlayGameUpload", "Failed to save game", e)
             _error.value = e.message ?: "Failed to save game"
             false
+        } finally {
+            _isLoading.value = false
         }
     }
     

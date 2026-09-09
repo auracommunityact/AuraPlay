@@ -1,6 +1,7 @@
 package com.example.ui.admin
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,11 +46,14 @@ fun AdminAddEditGameScreen(
     viewModel: AdminGamesViewModel = viewModel()
 ) {
     val games by viewModel.games.collectAsState()
+    val isViewModelLoading by viewModel.isLoading.collectAsState()
+    
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var game by remember { mutableStateOf(Game()) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isImageUploading by remember { mutableStateOf(false) }
 
     LaunchedEffect(games) {
         if (gameId != null && gameId != "new") {
@@ -59,9 +63,10 @@ fun AdminAddEditGameScreen(
 
     // Generic upload function
     fun uploadImage(uri: Uri, folder: String, onUrlReceived: (String) -> Unit) {
-        isLoading = true
+        isImageUploading = true
         scope.launch {
             try {
+                Log.d("AuraPlayGameUpload", "Starting image upload to folder: $folder")
                 val contentResolver = context.contentResolver
                 val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
                 val extension = if (mimeType.contains("png")) "png" else "jpg"
@@ -75,11 +80,15 @@ fun AdminAddEditGameScreen(
                     SupabaseClient.client.storage.from("app-assets").upload(path, bytes, upsert = true)
                     val publicUrl = SupabaseClient.client.storage.from("app-assets").publicUrl(path)
                     onUrlReceived(publicUrl)
+                    Log.d("AuraPlayGameUpload", "Image upload successful: $publicUrl")
+                } else {
+                    throw Exception("Could not read image data")
                 }
             } catch (e: Exception) {
-                // handle error
+                Log.e("AuraPlayGameUpload", "Image upload failed", e)
+                snackbarHostState.showSnackbar("Failed to upload image: ${e.localizedMessage ?: "Unknown error"}")
             } finally {
-                isLoading = false
+                isImageUploading = false
             }
         }
     }
@@ -102,7 +111,10 @@ fun AdminAddEditGameScreen(
         }
     }
 
+    val isBusy = isViewModelLoading || isImageUploading
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (gameId == "new") "Add Game" else "Edit Game", color = Color.White) },
@@ -112,13 +124,38 @@ fun AdminAddEditGameScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = {
-                        scope.launch {
-                            val success = viewModel.saveGame(game)
-                            if (success) onBack()
+                    TextButton(
+                        enabled = !isBusy,
+                        onClick = {
+                            if (game.title.isBlank()) {
+                                scope.launch { snackbarHostState.showSnackbar("Game title is required") }
+                                return@TextButton
+                            }
+                            game = game.copy(title = game.title.trim())
+                            
+                            scope.launch {
+                                Log.d("AuraPlayGameUpload", "Save button clicked for game: ${game.title}")
+                                val success = viewModel.saveGame(game)
+                                if (success) {
+                                    snackbarHostState.showSnackbar("Game saved successfully")
+                                    onBack()
+                                } else {
+                                    snackbarHostState.showSnackbar(viewModel.error.value ?: "Failed to save game")
+                                }
+                            }
                         }
-                    }) {
-                        Text("Save", color = AuraPrimary, fontWeight = FontWeight.Bold)
+                    ) {
+                        if (isBusy) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = AuraPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Saving...", color = AuraPrimary.copy(alpha = 0.5f), fontWeight = FontWeight.Bold)
+                        } else {
+                            Text("Save", color = AuraPrimary, fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AuraBackground)
@@ -126,11 +163,6 @@ fun AdminAddEditGameScreen(
         },
         containerColor = AuraBackground
     ) { padding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = AuraPrimary)
-            }
-        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -144,7 +176,7 @@ fun AdminAddEditGameScreen(
                 OutlinedTextField(
                     value = game.title,
                     onValueChange = { game = game.copy(title = it) },
-                    label = { Text("Game Title") },
+                    label = { Text("Game Title *") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White)
                 )
@@ -195,7 +227,6 @@ fun AdminAddEditGameScreen(
                     maxLines = 5
                 )
             }
-
             item {
                 OutlinedTextField(
                     value = game.version ?: "",
@@ -214,6 +245,7 @@ fun AdminAddEditGameScreen(
                     colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White)
                 )
             }
+
             item { Text("Store Links", color = AuraPrimary, fontWeight = FontWeight.Bold) }
             item {
                 OutlinedTextField(
@@ -310,6 +342,9 @@ fun AdminAddEditGameScreen(
                     }
                 }
             }
+            
+            // Add spacer so we can scroll past bottom elements easily
+            item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
 }
